@@ -1,4 +1,12 @@
-
+/*****************************************************************************
+ * SPI serial decoder for HP 16700 series logic analyzers.
+ * Andrei A. Semenov <rtr989@gmail.com>
+ *
+ * See the LICENSE file accompying this source file for copyright and
+ * redistribution information. Copyright (c) 2020 by Andrei A. Semenov.
+ *
+ * For use with the Tool Development Kit.
+ *****************************************************************************/ 
 
 enum conditions {
     IDLE,
