@@ -8,12 +8,10 @@
  * For use with the Tool Development Kit.
  *****************************************************************************/ 
 
+
 enum conditions {
     IDLE,
-    READ_ADDR,
-    READ_RW,
     READ_DATA,
-    READ_ACK,
     INVALID
 };
 
@@ -210,8 +208,6 @@ decoder* newDecoder() {
     // Assume we're starting with an idle bus
     d->state = IDLE;
     d->sck = 0;
-    d->mosi = 1;
-    d->miso = 1;
     d->ss = 1;
 
     return d;
@@ -255,6 +251,7 @@ void handleState(decoder *d, unsigned int sck, unsigned int mosi, unsigned int m
 
     // Read a byte of data
     else if( d->state==READ_DATA && sck==1 ) {
+        
         d->byte_mosi |= mosi << (7-d->pos);
         d->byte_miso |= miso << (7-d->pos);
         d->pos++;
@@ -267,7 +264,6 @@ void handleState(decoder *d, unsigned int sck, unsigned int mosi, unsigned int m
             d->pos = 0;
             d->byte_mosi = 0;
             d->byte_miso = 0;
-            d->state = IDLE;
         }
     }
 
@@ -275,8 +271,6 @@ void handleState(decoder *d, unsigned int sck, unsigned int mosi, unsigned int m
 
     d->ss = ss;
     d->sck = sck;
-    d->mosi = mosi;
-    d->miso = miso;
 }
 
 StringList getLabelNames() {
