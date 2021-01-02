@@ -6,6 +6,7 @@
  * redistribution information. Copyright (c) 2020 by Andrei A. Semenov.
  *
  * For use with the Tool Development Kit.
+ * useSSline=1 for SS line
  *****************************************************************************/ 
 
 
@@ -28,6 +29,8 @@ struct decoder {
     long long           time;
 };
 
+
+
 enum { white, white2, scarlet, pumpkin, yellow, lime, turquoise, lavender };
 
 typedef struct decoder decoder;
@@ -37,7 +40,7 @@ void destroyDecoder(decoder *d);
 void handleState(decoder *d, unsigned int sck, unsigned int ss, unsigned int mosi, unsigned int miso,
                  long long time, TDKDataSet &dataDs, TDKDataSet &eventDs,
                  TDKLabelEntry &spi_mosiLE, TDKLabelEntry &sPiEventsLE, TDKLabelEntry &spi_misoLE,
-                 TDKBaseIO &io);
+                 TDKBaseIO &io, int useSS);
 
 void execute(TDKDataGroup &dg, TDKBaseIO &io) {
     decoder *d;
@@ -64,6 +67,16 @@ void execute(TDKDataGroup &dg, TDKBaseIO &io) {
 
     int err = 0;
 
+    int useSSline=0;
+
+    /*
+    int num = 0;
+    num = sscanf( io.getArg( 0 ), "%i", &useSSline );
+    if( num != 1 ){
+        io.print( "Unable to convert use SS parameter" );
+        return;
+    }
+*/
     d = newDecoder();
     if(d==0) {
         io.print("Unable to allocate decoder memory.");
@@ -166,7 +179,7 @@ void execute(TDKDataGroup &dg, TDKBaseIO &io) {
 
 
     while( ds.next(time) && sckLE.next(sckValue) && mosiLE.next(mosiValue) && misoLE.next(misoValue) && ssLE.next(ssValue) ) {
-        handleState(d, sckValue, mosiValue, misoValue, ssValue, time, dataDs, eventDs, spi_mosiLE, sPiEventsLE, spi_misoLE, io);
+        handleState(d, sckValue, mosiValue, misoValue, ssValue, time, dataDs, eventDs, spi_mosiLE, sPiEventsLE, spi_misoLE, io, useSSline);
         lastTime = time;
     }
 
@@ -226,14 +239,28 @@ void destroyDecoder(decoder *d) {
 void handleState(decoder *d, unsigned int sck, unsigned int mosi, unsigned int miso, unsigned int ss,
                  long long time, TDKDataSet &dataDs, TDKDataSet &eventDs,
                  TDKLabelEntry &spi_mosiLE, TDKLabelEntry &sPiEventsLE, TDKLabelEntry &spi_misoLE,
-                 TDKBaseIO &io) {
+                 TDKBaseIO &io, int useSS) {
+                 
     if( d->sckPrev == sck && d->sck == sck ) {
         // nothing changed; move on to next state on the wire
         return;
     }
 
     // Look for stop condition. This can occur at any time.
-    if(  d->sckPrev==1 && d->sck==0 && sck==0 ) {
+    if(  d->sckPrev==1 && d->sck==0 && sck==0 && useSS==0 ) {
+        dataDs.replaceNext(time);
+        spi_mosiLE.setColor( spi_mosiLE.getPosition(), scarlet );
+        spi_mosiLE.replaceNext((unsigned int)(0));
+        spi_misoLE.setColor( spi_misoLE.getPosition(), scarlet );
+        spi_misoLE.replaceNext((unsigned int)(0));
+
+        eventDs.replaceNext(time);
+        sPiEventsLE.setColor( sPiEventsLE.getPosition(), scarlet );
+        sPiEventsLE.replaceNext((String)"STOP");
+
+        d->state = IDLE;
+    }
+    if( d->ss==0 && ss==1  && useSS==1 ) {
         dataDs.replaceNext(time);
         spi_mosiLE.setColor( spi_mosiLE.getPosition(), scarlet );
         spi_mosiLE.replaceNext((unsigned int)(0));
@@ -248,7 +275,18 @@ void handleState(decoder *d, unsigned int sck, unsigned int mosi, unsigned int m
     }
 
     // Look for start condition. 
-    if( d->sckPrev==0 && d->sck==0 && sck==1 ) {
+    if( d->sckPrev==0 && d->sck==0 && sck==1 && useSS==0 ) {
+        if( d->state == IDLE ) {
+            eventDs.replaceNext(time);
+            sPiEventsLE.setColor( sPiEventsLE.getPosition(), lime );
+            sPiEventsLE.replaceNext((String)"START");
+        }
+        d->state = READ_DATA;
+        d->pos = 0;
+        d->byte_mosi = 0;
+        d->byte_miso = 0;
+    }
+    if( d->ss==1 && ss==0 && useSS==1 ) {
         if( d->state == IDLE ) {
             eventDs.replaceNext(time);
             sPiEventsLE.setColor( sPiEventsLE.getPosition(), lime );
@@ -289,14 +327,22 @@ void handleState(decoder *d, unsigned int sck, unsigned int mosi, unsigned int m
     d->sck = sck;
 }
 
-StringList getLabelNames() {
-    StringList labels;
-    return labels;
+
+
+StringList getLabelNames()
+{
+  StringList labels;
+  labels.put("Use SS line: ");
+  return labels;
 }
 
-StringList getDefaultArgs() {
-    StringList labels;
-    return labels;
+
+// Assign default values to runtime arguments
+StringList getDefaultArgs()
+{
+  StringList defs;
+  defs.put("0");
+  return defs;
 }
 
 
