@@ -232,6 +232,21 @@ void handleState(decoder *d, unsigned int sck, unsigned int mosi, unsigned int m
         return;
     }
 
+    // Look for stop condition. This can occur at any time.
+    if(  d->sckPrev==1 && d->sck==0 && sck==0 ) {
+        dataDs.replaceNext(time);
+        spi_mosiLE.setColor( spi_mosiLE.getPosition(), scarlet );
+        spi_mosiLE.replaceNext((unsigned int)(0));
+        spi_misoLE.setColor( spi_misoLE.getPosition(), scarlet );
+        spi_misoLE.replaceNext((unsigned int)(0));
+
+        eventDs.replaceNext(time);
+        sPiEventsLE.setColor( sPiEventsLE.getPosition(), scarlet );
+        sPiEventsLE.replaceNext((String)"STOP");
+
+        d->state = IDLE;
+    }
+
     // Look for start condition. 
     if( d->sckPrev==0 && d->sck==0 && sck==1 ) {
         if( d->state == IDLE ) {
@@ -267,22 +282,7 @@ void handleState(decoder *d, unsigned int sck, unsigned int mosi, unsigned int m
         }
     }
 
-    // Look for stop condition. This can occur at any time.
-    if(  d->sckPrev==1 && d->sck==0 && sck==0 ) {
-        dataDs.replaceNext(time);
-        spi_mosiLE.setColor( spi_mosiLE.getPosition(), scarlet );
-        spi_mosiLE.replaceNext((unsigned int)(0));
-        spi_misoLE.setColor( spi_misoLE.getPosition(), scarlet );
-        spi_misoLE.replaceNext((unsigned int)(0));
 
-        eventDs.replaceNext(time);
-        sPiEventsLE.setColor( sPiEventsLE.getPosition(), scarlet );
-        sPiEventsLE.replaceNext((String)"STOP");
-
-        
-
-        d->state = IDLE;
-    }
 
     d->ss = ss;
     d->sckPrev = d->sck;
