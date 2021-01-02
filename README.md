@@ -4,5 +4,5 @@ This channels need for analyser:
 SCK
 MOSI
 MISO
-SS
+
 
