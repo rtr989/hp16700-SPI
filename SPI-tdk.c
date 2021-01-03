@@ -69,14 +69,14 @@ void execute(TDKDataGroup &dg, TDKBaseIO &io) {
 
     int useSSline=0;
 
-    /*
+    
     int num = 0;
     num = sscanf( io.getArg( 0 ), "%i", &useSSline );
     if( num != 1 ){
         io.print( "Unable to convert use SS parameter" );
         return;
     }
-*/
+
     d = newDecoder();
     if(d==0) {
         io.print("Unable to allocate decoder memory.");
